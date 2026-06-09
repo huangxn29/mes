@@ -1,0 +1,59 @@
+#!/bin/sh
+#
+# commit-msg hook — 验证提交信息是否符合约定式提交规范
+# 规则来源: commitlint.config.js
+#
+# 使用方法:
+#   将此文件放入 .githooks/commit-msg，然后运行:
+#   git config core.hooksPath .githooks
+#
+
+COMMIT_MSG_FILE="$1"
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# 允许合并提交 (Merge ...)
+echo "$COMMIT_MSG" | grep -qE "^Merge " && exit 0
+
+# 允许 revert 提交
+echo "$COMMIT_MSG" | grep -qE "^Revert " && exit 0
+
+# 检查提交信息格式: <type>(<scope>): <subject>
+# 或 <type>: <subject>
+if ! echo "$COMMIT_MSG" | grep -qE "^(feat|fix|docs|style|refactor|perf|test|build|ci|chore)(\([a-z0-9._-]+\))?: .+$"; then
+    echo ""
+    echo " ❌ 提交信息不符合约定式提交规范！"
+    echo ""
+    echo "    格式: <type>(<scope>): <description>"
+    echo ""
+    echo "    类型: feat | fix | docs | style | refactor | perf | test | build | ci | chore"
+    echo ""
+    echo "    示例:"
+    echo "      feat(auth): add login page"
+    echo "      fix: resolve NPE in user query"
+    echo "      docs: update README"
+    echo ""
+    exit 1
+fi
+
+# 检查 subject 是否以小写字母开头
+SUBJECT=$(echo "$COMMIT_MSG" | head -n1 | sed 's/^[^(]*\(([^)]*)\)\?: *//')
+FIRST_CHAR=$(echo "$SUBJECT" | cut -c1)
+if echo "$FIRST_CHAR" | grep -qE "[A-Z]"; then
+    echo ""
+    echo " ⚠️  subject 应以小写字母开头"
+    echo "    当前: $SUBJECT"
+    echo "    建议: $(echo "$SUBJECT" | sed 's/./\L&/')"
+    echo ""
+    exit 1
+fi
+
+# 检查 subject 长度
+LENGTH=${#SUBJECT}
+if [ "$LENGTH" -gt 72 ]; then
+    echo ""
+    echo " ❌ subject 超过 72 个字符 (当前: $LENGTH)"
+    echo ""
+    exit 1
+fi
+
+exit 0

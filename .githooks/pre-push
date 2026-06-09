@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# pre-push hook — 禁止直接推送受保护分支
+#
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+case "$BRANCH" in
+  master|develop)
+    echo ""
+    echo " ❌ 禁止直接推送到 '$BRANCH' 分支！"
+    echo "    请通过 PR 合并代码。"
+    echo ""
+    exit 1
+    ;;
+esac
+
+exit 0
